@@ -5,7 +5,7 @@
 action = "allow"
 
 [[rules]]
-tool = "read_file"
+tool = "read_*"
 action = "allow"
 [rules.args.path]
 allow_regex = ["^/home/dev/projects/"]

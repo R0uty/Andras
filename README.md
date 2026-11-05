@@ -6,9 +6,9 @@ It inspects the traffic in both directions and blocks poisoned tools, injected
 instructions and unauthorized actions before they reach the model or execute.
 
 > **Status: early development, not ready for production use.** The rule-based
-> checks work and are measured against a small test corpus, but Andras has not
-> yet been run in front of a real server from a real client. See
-> [Where it stands](#where-it-stands).
+> checks work and are measured against a small test corpus. Andras has been run
+> in front of the real filesystem server with scripted messages, but not yet from
+> a real client. See [Where it stands](#where-it-stands).
 
 ## The problem
 
@@ -80,10 +80,11 @@ The attacks in scope, and the control for each, are in the
 - Stdio proxy with pinning, policy, scanners and secret filter
 - `andras scan` for saved `tools/list` responses, and `andras check-policy`
 - Audit log, corpus runner and an end-to-end rug-pull demo
+- Scripted run in front of the reference filesystem server
 
 **Not yet**
 
-- Testing with real clients and servers, which is the next task
+- Testing from a real client and against more servers, which is the next task
 - Interactive approval: `ask` currently refuses the call with "approval required"
 - Path canonicalisation: path rules are regex on raw strings, so symlinks and
   encodings are not resolved
@@ -137,25 +138,27 @@ with `andras` on your `PATH`):
 
 Pins and the audit log are written to `.andras/` in the working directory. The
 example policy allows paths under `/home/dev/projects/` only, so adjust it to
-your own project path.
+your own project path. A call that lacks an argument its rule constrains is
+denied, so a tool with different argument names needs its own rule.
 
 ## Results
 
-Baseline on the current corpus (24 fixtures), release build:
+Baseline on the current corpus (26 fixtures), release build:
 
 | Class | Fixtures | Correct | Rate |
 | --- | ---: | ---: | ---: |
 | benign (not blocked) | 7 | 6 | 86% |
-| excessive_agency | 3 | 3 | 100% |
+| excessive_agency | 5 | 5 | 100% |
 | exfiltration | 3 | 2 | 67% |
 | full_schema_poisoning | 2 | 2 | 100% |
 | output_injection | 2 | 2 | 100% |
 | rug_pull | 2 | 2 | 100% |
 | tool_poisoning | 3 | 2 | 67% |
 | tool_shadowing | 2 | 1 | 50% |
-| **all** | 24 | 20 | 83% |
+| **all** | 26 | 22 | 85% |
 
-Mean gate time: about 48 µs per message (in-process, rule-based checks).
+Mean gate time: about 12 µs per message on a desktop machine (in-process,
+rule-based checks). It varies by machine.
 
 The four misses are deliberate fixtures that show the limits of rules: a
 paraphrased poisoning with no trigger words, a secret split across two fields,

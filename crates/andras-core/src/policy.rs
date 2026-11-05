@@ -188,23 +188,33 @@ impl Policy {
         };
         // Argument constraints apply even to allow rules.
         for (name, c) in &rule.args {
+            // Fail closed: a check that cannot run must not end in an allow.
             let Some(value) = args.get(name) else {
-                continue;
-            };
-            let text = match value {
-                Value::String(s) => s.clone(),
-                other => other.to_string(),
-            };
-            if let Some(re) = c.deny.iter().find(|re| re.is_match(&text)) {
                 return Decision::Deny(format!(
-                    "argument `{name}` matches deny pattern `{}`",
-                    re.as_str()
+                    "argument `{name}` is constrained by policy but missing from the call"
                 ));
-            }
-            if !c.allow.is_empty() && !c.allow.iter().any(|re| re.is_match(&text)) {
-                return Decision::Deny(format!(
-                    "argument `{name}` is outside the allowed patterns"
-                ));
+            };
+            // Every array element must pass on its own.
+            let items = match value {
+                Value::Array(items) => items.as_slice(),
+                other => std::slice::from_ref(other),
+            };
+            for item in items {
+                let text = match item {
+                    Value::String(s) => s.clone(),
+                    other => other.to_string(),
+                };
+                if let Some(re) = c.deny.iter().find(|re| re.is_match(&text)) {
+                    return Decision::Deny(format!(
+                        "argument `{name}` matches deny pattern `{}`",
+                        re.as_str()
+                    ));
+                }
+                if !c.allow.is_empty() && !c.allow.iter().any(|re| re.is_match(&text)) {
+                    return Decision::Deny(format!(
+                        "argument `{name}` is outside the allowed patterns"
+                    ));
+                }
             }
         }
         to_decision(
@@ -280,6 +290,40 @@ mod tests {
         ));
         assert!(matches!(
             p.evaluate("git", "git_status", &json!({})),
+            Decision::Deny(_)
+        ));
+    }
+
+    #[test]
+    fn denies_when_constrained_arg_is_missing() {
+        let p = Policy::from_toml(POLICY).unwrap();
+        for args in [json!({"paths": ["/home/dev/.ssh/id_rsa"]}), json!({})] {
+            assert!(matches!(
+                p.evaluate("filesystem", "read_file", &args),
+                Decision::Deny(_)
+            ));
+        }
+    }
+
+    #[test]
+    fn checks_every_array_element() {
+        let p = Policy::from_toml(
+            r#"
+            [[rules]]
+            tool = "read_multiple_files"
+            action = "allow"
+            [rules.args.paths]
+            allow_regex = ["^/home/dev/projects/"]
+            "#,
+        )
+        .unwrap();
+        let eval = |paths| p.evaluate("fs", "read_multiple_files", &json!({"paths": paths}));
+        assert_eq!(
+            eval(json!(["/home/dev/projects/a", "/home/dev/projects/b"])),
+            Decision::Allow
+        );
+        assert!(matches!(
+            eval(json!(["/home/dev/projects/a", "/etc/passwd"])),
             Decision::Deny(_)
         ));
     }
