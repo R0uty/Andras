@@ -1,0 +1,64 @@
+# Example Andras policy for a local coding agent.
+# First matching rule wins; unmatched calls fall back to [defaults].action.
+# Validate with: andras check-policy policies/example.toml
+
+[defaults]
+action = "ask"                # allow | deny | ask (ask = refuse with "approval required" until M2b)
+scan_tool_definitions = true  # quarantine tools whose definitions carry high-severity findings
+scan_outputs = true           # replace tool output that contains instructions aimed at the model
+block_secrets = true          # refuse calls whose arguments contain keys or tokens
+deny_unlisted_tools = true    # refuse calls to tools the server never listed
+allow_sampling = false        # MCP sampling lets a server author prompts; keep it off
+
+# --- filesystem: read inside the project only -------------------------------
+[[rules]]
+server = "filesystem"
+tool = "read_*"
+action = "allow"
+note = "Regex on raw paths is a stopgap; path canonicalisation is on the roadmap."
+[rules.args.path]
+allow_regex = ["^/home/dev/projects/"]
+deny_regex = ["\\.\\.", "(?i)(\\.ssh|\\.aws|\\.env|id_rsa|id_ed25519)"]
+
+[[rules]]
+server = "filesystem"
+tool = "list_*"
+action = "allow"
+[rules.args.path]
+allow_regex = ["^/home/dev/projects/"]
+deny_regex = ["\\.\\."]
+
+[[rules]]
+server = "filesystem"
+tool = "delete_*"
+action = "deny"
+
+[[rules]]
+server = "filesystem"
+tool = "write_file"
+action = "ask"
+
+# --- git: read freely, pushing needs a human --------------------------------
+[[rules]]
+server = "git"
+tool = "git_status"
+action = "allow"
+
+[[rules]]
+server = "git"
+tool = "git_diff*"
+action = "allow"
+
+[[rules]]
+server = "git"
+tool = "git_push"
+action = "ask"
+
+# --- fetch: public web only -------------------------------------------------
+[[rules]]
+server = "fetch"
+tool = "fetch"
+action = "allow"
+[rules.args.url]
+allow_regex = ["^https://"]
+deny_regex = ["(?i)^https://(localhost|127\\.|10\\.|192\\.168\\.|169\\.254\\.)"]

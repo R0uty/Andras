@@ -1,0 +1,10 @@
+[package]
+name = "andras-eval"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.104"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+andras-core = { version = "0.1.0", path = "../andras-core" }

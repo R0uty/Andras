@@ -1,0 +1,20 @@
+# Policy used by the eval harness. Default allow, so the numbers measure the
+# scanners, pinning and secret filter; a few rules cover excessive agency.
+
+[defaults]
+action = "allow"
+
+[[rules]]
+tool = "read_file"
+action = "allow"
+[rules.args.path]
+allow_regex = ["^/home/dev/projects/"]
+deny_regex = ["\\.\\.", "(?i)(\\.ssh|\\.aws|\\.env|id_rsa|id_ed25519)"]
+
+[[rules]]
+tool = "delete_*"
+action = "deny"
+
+[[rules]]
+tool = "git_push"
+action = "ask"

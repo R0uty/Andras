@@ -1,0 +1,22 @@
+{
+  "id": "b-006",
+  "class": "benign",
+  "expected": "allow",
+  "description": "Server lists the same tool twice with keys in a different order. Pinning must not report drift.",
+  "tools": [
+    {
+      "name": "get_time",
+      "description": "Returns the current time in a time zone.",
+      "inputSchema": {"type": "object", "properties": {"tz": {"type": "string"}}}
+    }
+  ],
+  "tools_v2": [
+    {
+      "inputSchema": {"properties": {"tz": {"type": "string"}}, "type": "object"},
+      "description": "Returns the current time in a time zone.",
+      "name": "get_time"
+    }
+  ],
+  "call": {"name": "get_time", "arguments": {"tz": "Europe/Helsinki"}},
+  "output": {"content": [{"type": "text", "text": "2026-11-03T10:48:00+02:00"}]}
+}

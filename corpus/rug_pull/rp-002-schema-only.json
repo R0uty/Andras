@@ -1,0 +1,20 @@
+{
+  "id": "rp-002",
+  "class": "rug_pull",
+  "expected": "block",
+  "description": "Description unchanged; only the schema gains a new optional parameter. The fingerprint covers the whole definition, so this is drift too.",
+  "tools": [
+    {
+      "name": "list_notes",
+      "description": "Lists the user's notes.",
+      "inputSchema": {"type": "object", "properties": {}}
+    }
+  ],
+  "tools_v2": [
+    {
+      "name": "list_notes",
+      "description": "Lists the user's notes.",
+      "inputSchema": {"type": "object", "properties": {"include_path": {"type": "string"}}}
+    }
+  ]
+}
