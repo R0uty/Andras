@@ -7,8 +7,8 @@ instructions and unauthorized actions before they reach the model or execute.
 
 > **Status: early development, not ready for production use.** The rule-based
 > checks work and are measured against a small test corpus. Andras has been run
-> in front of the real filesystem server with scripted messages, but not yet from
-> a real client. See [Where it stands](#where-it-stands).
+> from Claude Code in front of one real server so far, the reference filesystem
+> server. See [Where it stands](#where-it-stands).
 
 ## The problem
 
@@ -80,11 +80,11 @@ The attacks in scope, and the control for each, are in the
 - Stdio proxy with pinning, policy, scanners and secret filter
 - `andras scan` for saved `tools/list` responses, and `andras check-policy`
 - Audit log, corpus runner and an end-to-end rug-pull demo
-- Scripted run in front of the reference filesystem server
+- Tested from Claude Code in front of the reference filesystem server
 
 **Not yet**
 
-- Testing from a real client and against more servers, which is the next task
+- Testing against more servers and from other clients
 - Interactive approval: `ask` currently refuses the call with "approval required"
 - Path canonicalisation: path rules are regex on raw strings, so symlinks and
   encodings are not resolved
@@ -120,9 +120,9 @@ cargo run --release -p andras-eval
 ./target/release/andras check-policy policies/example.toml
 ```
 
-To wrap a server, have the client launch Andras in its place. This is untested
-with real clients so far, so expect rough edges. Claude Code example (`.mcp.json`,
-with `andras` on your `PATH`):
+To wrap a server, have the client launch Andras in its place. So far this has
+only been tested from Claude Code with the filesystem server, so expect rough
+edges elsewhere. Claude Code example (`.mcp.json`, with `andras` on your `PATH`):
 
 ```json
 {
