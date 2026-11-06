@@ -12,6 +12,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "andras"
+version = "0.1.0"
+dependencies = [
+ "andras-core",
+ "anyhow",
+ "clap",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "andras-core"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "regex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
+name = "andras-eval"
+version = "0.1.0"
+dependencies = [
+ "andras-core",
+ "anyhow",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "anstream"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -529,40 +563,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "andras"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "serde_json",
- "tokio",
- "andras-core",
-]
-
-[[package]]
-name = "andras-core"
-version = "0.1.0"
-dependencies = [
- "hex",
- "regex",
- "serde",
- "serde_json",
- "sha2",
- "thiserror",
- "toml",
-]
-
-[[package]]
-name = "andras-eval"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "serde",
- "serde_json",
- "andras-core",
 ]
 
 [[package]]

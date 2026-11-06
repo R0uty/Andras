@@ -45,3 +45,13 @@ Fail-closed is arguably better for a security tool; revisit with a
 
 Arguments can hold the very secrets being protected. Log tool name, decision,
 reason and finding locations only.
+
+## D9. A missing constrained argument denies the call
+
+Found by running the real filesystem server: its `read_multiple_files` takes
+`paths`, so a `read_*` rule constraining `path` skipped its check and allowed a
+read outside the allowed root (`ea-004`, `ea-005`). A check that cannot run must
+not end in an allow. The cost is that a rule constraining an optional argument
+denies calls that omit it, and wildcard rules can catch tools with other
+arguments, so those tools need their own rule first. Array arguments are checked
+per element, so one allowed path cannot carry an out-of-scope one.
