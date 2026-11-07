@@ -48,8 +48,9 @@ All four of build, test, clippy and fmt must pass before a change is done.
 ## Current status
 
 See `docs/roadmap.md`. M1 works from Claude Code with the filesystem server,
-M2–M4 are scaffolded and the baseline eval runs (26 fixtures, 85% correct, four
-deliberate misses). Next up: real benign fixtures, path canonicalisation, M2b.
+M2–M4 are scaffolded and the baseline eval runs (30 fixtures, 87% correct, four
+deliberate misses). Path arguments are normalised (D10). Next up: real benign
+fixtures, M2b.
 
 ## Git
 

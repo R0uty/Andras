@@ -8,8 +8,9 @@ action = "allow"
 tool = "read_*"
 action = "allow"
 [rules.args.path]
+kind = "path"
 allow_regex = ["^/home/dev/projects/"]
-deny_regex = ["\\.\\.", "(?i)(\\.ssh|\\.aws|\\.env|id_rsa|id_ed25519)"]
+deny_regex = ["(?i)(\\.ssh|\\.aws|\\.env|id_rsa|id_ed25519)", "^/home/dev/projects/[^/]+/secrets/"]
 
 [[rules]]
 tool = "delete_*"

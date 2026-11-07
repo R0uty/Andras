@@ -78,6 +78,8 @@ The attacks in scope, and the control for each, are in the
 **Works today**
 
 - Stdio proxy with pinning, policy, scanners and secret filter
+- Path arguments (`kind = "path"`) are normalised before matching; relative
+  paths and `..` are refused
 - `andras scan` for saved `tools/list` responses, and `andras check-policy`
 - Audit log, corpus runner and an end-to-end rug-pull demo
 - Tested from Claude Code in front of the reference filesystem server
@@ -86,8 +88,8 @@ The attacks in scope, and the control for each, are in the
 
 - Testing against more servers and from other clients
 - Interactive approval: `ask` currently refuses the call with "approval required"
-- Path canonicalisation: path rules are regex on raw strings, so symlinks and
-  encodings are not resolved
+- Symlink resolution: path arguments are normalised without reading the file
+  system, so a symlink inside an allowed folder can still point outside it
 - A larger corpus (the target is 10+ fixtures per class and 20+ real benign servers)
 - Packaging and a crates.io release: for now, build from source
 
@@ -139,23 +141,24 @@ edges elsewhere. Claude Code example (`.mcp.json`, with `andras` on your `PATH`)
 Pins and the audit log are written to `.andras/` in the working directory. The
 example policy allows paths under `/home/dev/projects/` only, so adjust it to
 your own project path. A call that lacks an argument its rule constrains is
-denied, so a tool with different argument names needs its own rule.
+denied, so a tool with different argument names needs its own rule. Mark path
+arguments with `kind = "path"` so they are normalised before the patterns run.
 
 ## Results
 
-Baseline on the current corpus (26 fixtures), release build:
+Baseline on the current corpus (30 fixtures), release build:
 
 | Class | Fixtures | Correct | Rate |
 | --- | ---: | ---: | ---: |
-| benign (not blocked) | 7 | 6 | 86% |
-| excessive_agency | 5 | 5 | 100% |
+| benign (not blocked) | 8 | 7 | 88% |
+| excessive_agency | 8 | 8 | 100% |
 | exfiltration | 3 | 2 | 67% |
 | full_schema_poisoning | 2 | 2 | 100% |
 | output_injection | 2 | 2 | 100% |
 | rug_pull | 2 | 2 | 100% |
 | tool_poisoning | 3 | 2 | 67% |
 | tool_shadowing | 2 | 1 | 50% |
-| **all** | 26 | 22 | 85% |
+| **all** | 30 | 26 | 87% |
 
 Mean gate time: about 12 µs per message on a desktop machine (in-process,
 rule-based checks). It varies by machine.

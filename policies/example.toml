@@ -13,13 +13,16 @@ allow_sampling = false        # MCP sampling lets a server author prompts; keep 
 # --- filesystem: read inside the project only -------------------------------
 # A call that lacks a constrained argument is denied, so tools with different
 # argument names need their own rule, placed before the wildcard that would match.
+# `kind = "path"` normalises the path first and refuses relative paths and `..`;
+# symlinks are not resolved, so the server must still enforce its own roots.
 [[rules]]
 server = "filesystem"
 tool = "read_multiple_files"
 action = "allow"
 [rules.args.paths]
+kind = "path"
 allow_regex = ["^/home/dev/projects/"]
-deny_regex = ["\\.\\.", "(?i)(\\.ssh|\\.aws|\\.env|id_rsa|id_ed25519)"]
+deny_regex = ["(?i)(\\.ssh|\\.aws|\\.env|id_rsa|id_ed25519)"]
 
 [[rules]]
 server = "filesystem"
@@ -30,18 +33,18 @@ action = "allow"
 server = "filesystem"
 tool = "read_*"
 action = "allow"
-note = "Regex on raw paths is a stopgap; path canonicalisation is on the roadmap."
 [rules.args.path]
+kind = "path"
 allow_regex = ["^/home/dev/projects/"]
-deny_regex = ["\\.\\.", "(?i)(\\.ssh|\\.aws|\\.env|id_rsa|id_ed25519)"]
+deny_regex = ["(?i)(\\.ssh|\\.aws|\\.env|id_rsa|id_ed25519)"]
 
 [[rules]]
 server = "filesystem"
 tool = "list_*"
 action = "allow"
 [rules.args.path]
+kind = "path"
 allow_regex = ["^/home/dev/projects/"]
-deny_regex = ["\\.\\."]
 
 [[rules]]
 server = "filesystem"

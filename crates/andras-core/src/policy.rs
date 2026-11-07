@@ -5,6 +5,7 @@
 use regex::Regex;
 use serde::Deserialize;
 use serde_json::Value;
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -101,9 +102,22 @@ struct RawRule {
     note: Option<String>,
 }
 
+/// How an argument's value is read before its patterns are matched.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ArgKind {
+    /// Matched as given.
+    #[default]
+    Text,
+    /// An absolute POSIX path, normalised first (see [`normalise_path`]).
+    Path,
+}
+
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RawArg {
+    #[serde(default)]
+    kind: ArgKind,
     #[serde(default)]
     allow_regex: Vec<String>,
     #[serde(default)]
@@ -112,6 +126,7 @@ struct RawArg {
 
 #[derive(Debug)]
 struct ArgConstraint {
+    kind: ArgKind,
     allow: Vec<Regex>,
     deny: Vec<Regex>,
 }
@@ -157,6 +172,7 @@ impl Policy {
                         .collect()
                 };
                 let c = ArgConstraint {
+                    kind: a.kind,
                     allow: compile(a.allow_regex)?,
                     deny: compile(a.deny_regex)?,
                 };
@@ -200,9 +216,16 @@ impl Policy {
                 other => std::slice::from_ref(other),
             };
             for item in items {
-                let text = match item {
-                    Value::String(s) => s.clone(),
-                    other => other.to_string(),
+                let text: Cow<str> = match (c.kind, item) {
+                    (ArgKind::Text, Value::String(s)) => Cow::Borrowed(s),
+                    (ArgKind::Text, other) => Cow::Owned(other.to_string()),
+                    (ArgKind::Path, Value::String(s)) => match normalise_path(s) {
+                        Ok(path) => path,
+                        Err(why) => return Decision::Deny(format!("path argument `{name}` {why}")),
+                    },
+                    (ArgKind::Path, _) => {
+                        return Decision::Deny(format!("path argument `{name}` is not a string"));
+                    }
                 };
                 if let Some(re) = c.deny.iter().find(|re| re.is_match(&text)) {
                     return Decision::Deny(format!(
@@ -222,6 +245,42 @@ impl Policy {
             format!("rule for {}/{}", rule.server, rule.tool),
         )
     }
+}
+
+/// Lexical normal form of an absolute POSIX path: empty and `.` segments are
+/// dropped, and a trailing `/` (or `/.`) is kept as `/`. The file system is
+/// never read. Paths that cannot be judged without it are refused: relative
+/// paths (they resolve against the server's working directory), `~`, NUL bytes
+/// and any `..` segment (with a symlink, `link/..` need not be the parent).
+pub fn normalise_path(raw: &str) -> Result<Cow<'_, str>, &'static str> {
+    if raw.contains('\0') {
+        return Err("contains a NUL byte");
+    }
+    if !raw.starts_with('/') {
+        return Err("is not an absolute path");
+    }
+    let mut parts = Vec::new();
+    for part in raw.split('/') {
+        match part {
+            "" | "." => {}
+            ".." => return Err("contains a `..` segment"),
+            p => parts.push(p),
+        }
+    }
+    let dir = matches!(raw.rsplit('/').next(), Some("" | "."));
+    let mut out = String::with_capacity(raw.len());
+    for p in &parts {
+        out.push('/');
+        out.push_str(p);
+    }
+    if dir || parts.is_empty() {
+        out.push('/');
+    }
+    Ok(if out == raw {
+        Cow::Borrowed(raw)
+    } else {
+        Cow::Owned(out)
+    })
 }
 
 fn to_decision(action: Action, reason: String) -> Decision {
@@ -326,6 +385,64 @@ mod tests {
             eval(json!(["/home/dev/projects/a", "/etc/passwd"])),
             Decision::Deny(_)
         ));
+    }
+
+    #[test]
+    fn normalises_paths_lexically() {
+        let ok = |raw| normalise_path(raw).unwrap().into_owned();
+        assert_eq!(ok("/a/b"), "/a/b");
+        assert_eq!(ok("/a/./b"), "/a/b");
+        assert_eq!(ok("//a///b"), "/a/b");
+        assert_eq!(ok("/a/b/"), "/a/b/");
+        assert_eq!(ok("/a/b/."), "/a/b/");
+        assert_eq!(ok("/"), "/");
+        assert_eq!(ok("/a/v1..v2/.github"), "/a/v1..v2/.github");
+        for bad in ["a/b", "./a", "~/a", "", "/a/../b", "/a/..", "/a\0b"] {
+            assert!(normalise_path(bad).is_err(), "{bad:?}");
+        }
+    }
+
+    const PATH_POLICY: &str = r#"
+        [[rules]]
+        tool = "read_file"
+        action = "allow"
+        [rules.args.path]
+        kind = "path"
+        allow_regex = ["^/home/dev/projects/"]
+        deny_regex = ["^/home/dev/projects/[^/]+/secrets/"]
+    "#;
+
+    #[test]
+    fn path_kind_blocks_what_raw_regex_misses() {
+        let p = Policy::from_toml(PATH_POLICY).unwrap();
+        let eval = |path| p.evaluate("fs", "read_file", &json!({"path": path}));
+        // No `..` deny pattern is needed in the rule.
+        for bad in [
+            json!("/home/dev/projects/../../.ssh/id_ed25519"),
+            json!("/home/dev/projects/app/./secrets/db.txt"),
+            json!("/home/dev/projects/app//secrets/db.txt"),
+            json!("projects/a.rs"),
+            json!(42),
+        ] {
+            assert!(matches!(eval(bad.clone()), Decision::Deny(_)), "{bad}");
+        }
+    }
+
+    #[test]
+    fn path_kind_allows_ordinary_paths() {
+        let p = Policy::from_toml(PATH_POLICY).unwrap();
+        let eval = |path| p.evaluate("fs", "read_file", &json!({"path": path}));
+        assert_eq!(eval("/home/dev/projects/app/src/main.rs"), Decision::Allow);
+        assert_eq!(
+            eval("/home/dev/projects//app/./v1..v2.diff"),
+            Decision::Allow
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_arg_kind() {
+        let bad = "[[rules]]\ntool = \"t\"\naction = \"allow\"\n[rules.args.p]\nkind = \"url\"";
+        assert!(Policy::from_toml(bad).is_err());
     }
 
     #[test]

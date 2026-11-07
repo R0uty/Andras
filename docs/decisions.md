@@ -55,3 +55,19 @@ not end in an allow. The cost is that a rule constraining an optional argument
 denies calls that omit it, and wildcard rules can catch tools with other
 arguments, so those tools need their own rule first. Array arguments are checked
 per element, so one allowed path cannot carry an out-of-scope one.
+
+## D10. Path arguments are normalised lexically; `..` is refused
+
+Raw-string regex let `/./` and `//` slip past a deny pattern anchored to a
+folder (`ea-006`, `ea-007`), and safety depended on every rule repeating a
+`\.\.` pattern, which also blocked ordinary names like `v1..v2.diff`
+(`b-008`). An argument marked `kind = "path"` is now normalised first: empty
+and `.` segments are dropped, and relative paths, `~`, NUL bytes and any `..`
+segment deny the call. `..` is refused rather than resolved because with a
+symlink `link/..` need not be the lexical parent. Symlinks are not resolved:
+that needs file-system reads in the core, would differ between the gateway's
+view and the server's (time of check vs time of use), and cannot run on the
+corpus. The server must still enforce its own roots, as the reference
+filesystem server does. `kind` is opt-in so existing non-path arguments keep
+their meaning; the forwarded call is not rewritten. Windows paths are out of
+scope for v0.1.
