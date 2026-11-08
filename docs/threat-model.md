@@ -45,8 +45,11 @@ Trusted: the user, the MCP client, the OS, Andras's policy file.
 - **Split secrets** across fields evade the secret filter (`ex-003`).
 - **Quoting vs performing**: rules cannot tell a security article quoting an
   attack from the attack itself (`b-007`, false positive).
-- **Path checks are regex on raw strings.** Traversal is denied by pattern,
-  but symlinks and encodings are not resolved. Canonicalisation is planned.
+- **Symlinks are not resolved.** Path arguments marked `kind = "path"` are
+  normalised lexically, and relative paths and `..` are refused (`ea-002`,
+  `ea-006` to `ea-008`), but a symlink inside an allowed folder can point
+  outside it. The server must still enforce its own roots. Arguments without
+  `kind = "path"` are still matched as raw strings.
 - **Trust on first use**: a tool that is malicious *and* clean-looking at first
   sight gets pinned as trusted.
 
