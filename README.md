@@ -90,7 +90,8 @@ The attacks in scope, and the control for each, are in the
 - Interactive approval: `ask` currently refuses the call with "approval required"
 - Symlink resolution: path arguments are normalised without reading the file
   system, so a symlink inside an allowed folder can still point outside it
-- A larger corpus (the target is 10+ fixtures per class and 20+ real benign servers)
+- A larger corpus: the target is 10+ fixtures per class and 20+ real benign
+  servers (12 official reference servers so far)
 - Packaging and a crates.io release: for now, build from source
 
 **Planned after v0.1**
@@ -146,11 +147,11 @@ arguments with `kind = "path"` so they are normalised before the patterns run.
 
 ## Results
 
-Baseline on the current corpus (30 fixtures), release build:
+Baseline on the current corpus (42 fixtures), release build:
 
 | Class | Fixtures | Correct | Rate |
 | --- | ---: | ---: | ---: |
-| benign (not blocked) | 8 | 7 | 88% |
+| benign (not blocked) | 20 | 19 | 95% |
 | excessive_agency | 8 | 8 | 100% |
 | exfiltration | 3 | 2 | 67% |
 | full_schema_poisoning | 2 | 2 | 100% |
@@ -158,10 +159,14 @@ Baseline on the current corpus (30 fixtures), release build:
 | rug_pull | 2 | 2 | 100% |
 | tool_poisoning | 3 | 2 | 67% |
 | tool_shadowing | 2 | 1 | 50% |
-| **all** | 30 | 26 | 87% |
+| **all** | 42 | 38 | 90% |
 
-Mean gate time: about 12 µs per message on a desktop machine (in-process,
-rule-based checks). It varies by machine.
+The benign set includes the real `tools/list` output of 12 official reference
+servers (98 tools, `corpus/benign/real/`); none of their tools is quarantined.
+
+Mean gate time: about 20–25 µs per message on a desktop machine (in-process,
+rule-based checks). The real tool lists are the largest messages; the mean was
+about 12 µs before they were added. It varies by machine.
 
 The four misses are deliberate fixtures that show the limits of rules: a
 paraphrased poisoning with no trigger words, a secret split across two fields,

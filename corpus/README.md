@@ -38,7 +38,16 @@ Replay one against a real agent: `mock-server corpus/<class>/<file>.json` behind
 Some fixtures are **expected misses** (marked with `note`). They are kept on
 purpose: the results table must show where rule-based detection stops working.
 
+## Real tool lists
+
+`benign/real/` holds unmodified `tools/list` output from 12 official reference
+servers (98 tools); see `benign/real/NOTICE.md` for versions and licenses.
+Recapture one with `scripts/capture-tools-list.py`. Never edit a captured list
+to make it pass: a false positive gets fixed in the rules, with a held-out
+variant.
+
 ## Growing it
 
 Target for v0.1: at least 10 fixtures per class and 20+ benign ones, the benign
-set taken from real, popular MCP servers' `tools/list` output.
+set taken from real, popular MCP servers' `tools/list` output. The reference
+servers are a start; widely used third-party servers are next.

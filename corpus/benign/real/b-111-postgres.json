@@ -1,0 +1,20 @@
+{
+  "id": "b-111",
+  "class": "benign",
+  "expected": "allow",
+  "description": "Real tools/list from @modelcontextprotocol/server-postgres@0.6.2 (1 tools), captured 2026-11-08. No tool may be quarantined.",
+  "tools": [
+    {
+      "name": "query",
+      "description": "Run a read-only SQL query",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sql": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}
